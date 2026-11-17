@@ -4,49 +4,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1020">
 <title>Mon Studio Image</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#0b1020;color:#f4f6ff;font-family:Arial,sans-serif}
-main{max-width:850px;margin:auto;padding:22px 14px}
-header{text-align:center;padding:20px}
+
+body{
+ margin:0;
+ background:#0b1020;
+ color:#f4f6ff;
+ font-family:Arial,sans-serif;
+}
+
+main{
+ max-width:850px;
+ margin:auto;
+ padding:22px 14px;
+}
+
+header{
+ text-align:center;
+ padding:20px;
+}
+
 h1{color:#b9a2ff}
-.panel{background:#18213a;padding:20px;border-radius:16px;margin:16px 0}
-label{display:block;margin:15px 0 7px}
-input,textarea,select{width:100%;padding:12px;border-radius:9px;border:1px solid #465274;background:#0d1426;color:white;font-size:15px}
+
+.panel{
+ background:#18213a;
+ padding:20px;
+ border-radius:16px;
+ margin:16px 0;
+}
+
+label{
+ display:block;
+ margin:15px 0 7px;
+}
+
+input,textarea,select{
+ width:100%;
+ padding:12px;
+ border-radius:9px;
+ border:1px solid #465274;
+ background:#0d1426;
+ color:white;
+ font-size:15px;
+}
+
 textarea{min-height:130px}
-button{width:100%;padding:14px;margin-top:18px;border:0;border-radius:10px;background:linear-gradient(90deg,#a78bfa,#6ee7d8);font-weight:bold;font-size:16px;color:#11172a}
+
+button{
+ width:100%;
+ padding:14px;
+ margin-top:18px;
+ border:0;
+ border-radius:10px;
+ background:linear-gradient(90deg,#a78bfa,#6ee7d8);
+ font-weight:bold;
+ font-size:16px;
+ color:#11172a;
+ cursor:pointer;
+}
+
 button:disabled{opacity:.5}
-.small{font-size:12px;color:#b8c2d9;line-height:1.5}
-#status{white-space:pre-wrap;color:#6ee7d8;margin-top:15px;line-height:1.5}
-#results{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
-#results img{width:100%;border-radius:12px}
-#results a{display:block;color:#c4b5fd;margin:10px 0}
-.warning{color:#ffe3a1;font-size:13px}
+
+.small{
+ font-size:12px;
+ color:#b8c2d9;
+ line-height:1.5;
+}
+
+#status{
+ white-space:pre-wrap;
+ color:#6ee7d8;
+ margin-top:15px;
+ line-height:1.6;
+ overflow-wrap:anywhere;
+}
+
+#results{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+ gap:15px;
+}
+
+#results img{
+ width:100%;
+ border-radius:12px;
+}
+
+#results a{
+ display:block;
+ color:#c4b5fd;
+ margin:10px 0;
+}
+
+.warning{
+ color:#ffe3a1;
+ font-size:13px;
+}
+
 </style>
 </head>
+
 <body>
 <main>
+
 <header>
 <h1>✦ MON STUDIO IMAGE</h1>
 <p>Votre atelier personnel de création d'images IA</p>
 </header>
 
 <section class="panel">
-<h2>Créer une image</h2>
-<p class="small">Décrivez votre idée et choisissez votre style.</p>
 
-<p class="warning">Votre clé API n'est pas enregistrée. Ne la partagez jamais.</p>
+<h2>Créer une image</h2>
+
+<p class="small">
+Décrivez votre idée et choisissez votre style.
+</p>
+
+<p class="warning">
+Votre clé API n'est pas enregistrée.
+Ne la partagez jamais.
+</p>
+
 <label>Clé API AI Horde (facultatif)</label>
-<input id="key" type="password" placeholder="Votre clé API">
+<input
+ id="key"
+ type="password"
+ autocomplete="off"
+ placeholder="Votre clé API"
+>
 
 <label>Description de l'image</label>
+
 <textarea id="prompt">Un magnifique paysage fantastique japonais au coucher du soleil, un temple traditionnel au bord d’un lac cristallin, des montagnes majestueuses, des cerisiers en fleurs, un pont rouge, des lanternes illuminées, reflets sur l’eau, atmosphère magique, illustration anime japonaise détaillée, lumière cinématographique, sans texte, sans logo.</textarea>
 
 <label>Éléments à éviter</label>
-<input id="negative" placeholder="Flou, texte, filigrane, déformations">
+<input
+ id="negative"
+ placeholder="Flou, texte, filigrane, déformations"
+ value="Flou, texte, filigrane, déformations"
+>
 
 <label>Style</label>
+
 <select id="style">
 <option value="">Aucun ajout</option>
 <option value="anime japonais, illustration anime">Anime</option>
@@ -58,11 +161,13 @@ button:disabled{opacity:.5}
 </select>
 
 <label>Modèle</label>
+
 <select id="model">
 <option>AlbedoBase XL (SDXL)</option>
 </select>
 
 <label>Résolution</label>
+
 <select id="size">
 <option value="1024">1024 × 1024</option>
 <option value="768">768 × 768</option>
@@ -70,24 +175,35 @@ button:disabled{opacity:.5}
 </select>
 
 <label>Nombre d'images</label>
+
 <select id="count">
-<option value="1">1 image</option>
-<option value="2" selected>2 images</option>
+<option value="1" selected>1 image</option>
+<option value="2">2 images</option>
 <option value="3">3 images</option>
 </select>
 
-<button id="generate">✦ GÉNÉRER MES IMAGES</button>
-<div id="status" role="status"></div>
+<button id="generate">
+✦ GÉNÉRER MES IMAGES
+</button>
+
+<div id="status" role="status" aria-live="polite"></div>
+
 </section>
 
 <section class="panel">
 <h2>Mes résultats</h2>
 <div id="results">Les images apparaîtront ici.</div>
 </section>
-<p class="small" style="text-align:center">Mon Studio Image · AI Horde</p>
+
+<p class="small" style="text-align:center">
+Mon Studio Image · AI Horde
+</p>
+
 </main>
 
 <script>
+"use strict";
+
 const API="https://aihorde.net/api/v2";
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -101,44 +217,123 @@ async function request(path,options={}){
   "Content-Type":"application/json",
   "Client-Agent":"mon-studio-image:1.0"
  };
+
  const key=$("key").value.trim();
- if(key) headers.apikey=key;
+
+ if(key){
+  headers.apikey=key;
+ }
 
  const response=await fetch(API+path,{
   ...options,
   headers:{...headers,...options.headers}
  });
+
  const data=await response.json().catch(()=>({}));
+
  if(!response.ok){
-  throw new Error(data.message||data.error||"Erreur API "+response.status);
+  throw new Error(
+   data.message ||
+   data.error ||
+   "Erreur API "+response.status
+  );
  }
+
  return data;
 }
 
+// Vérification avec nouvelles tentatives
+async function checkWithRetry(id){
+
+ let lastError=null;
+
+ for(let attempt=0;attempt<3;attempt++){
+
+  try{
+   return await request(
+    "/generate/check/"+encodeURIComponent(id)
+   );
+
+  }catch(error){
+
+   lastError=error;
+
+   if(attempt<2){
+    await sleep(2000);
+   }
+  }
+ }
+
+ throw lastError || new Error("Connexion impossible.");
+}
+
+// Affichage des images
+function displayImages(generations){
+
+ $("results").innerHTML="";
+
+ generations.forEach((generation,index)=>{
+
+  if(!generation.img)return;
+
+  const card=document.createElement("div");
+
+  const img=document.createElement("img");
+  img.src=generation.img;
+  img.alt="Image générée "+(index+1);
+  img.loading="lazy";
+
+  const link=document.createElement("a");
+  link.href=generation.img;
+  link.target="_blank";
+  link.rel="noopener";
+  link.download="mon-studio-image-"+(index+1);
+  link.textContent="Ouvrir / télécharger l'image "+(index+1);
+
+  card.append(img,link);
+
+  $("results").append(card);
+ });
+}
+
+// Génération
 $("generate").addEventListener("click",async()=>{
+
  const prompt=$("prompt").value.trim();
+
  if(!prompt){
   status("Veuillez écrire une description.");
   return;
  }
 
  const button=$("generate");
+
  button.disabled=true;
- $("results").innerHTML="";
- status("Envoi de votre demande...");
+ $("results").textContent="En attente de votre image...";
+
+ status("Connexion à AI Horde...");
 
  try{
+
   const style=$("style").value;
   const negative=$("negative").value.trim();
-  const fullPrompt=prompt+(style?", "+style:"")+
-    (negative?"###"+negative:"");
+
+  const fullPrompt=
+   prompt+
+   (style?", "+style:"")+
+   (negative?"###"+negative:"");
+
   const dimension=Number($("size").value);
   const count=Number($("count").value);
 
+  // Envoyer la demande
   const submitted=await request("/generate/async",{
    method:"POST",
+
    body:JSON.stringify({
+
     prompt:fullPrompt,
+
     params:{
      width:dimension,
      height:dimension,
@@ -147,69 +342,119 @@ $("generate").addEventListener("click",async()=>{
      sampler_name:"k_euler_a",
      n:count
     },
+
     models:[$("model").value],
+
     nsfw:false,
     censor_nsfw:true,
     shared:false
+
    })
   });
 
   if(!submitted.id){
-   throw new Error(submitted.message||"Demande non acceptée.");
+   throw new Error(
+    submitted.message ||
+    "Demande non acceptée par AI Horde."
+   );
   }
 
-  status("Demande acceptée !\nNuméro : "+submitted.id+
-   "\nAttente des ordinateurs disponibles...");
+  const id=submitted.id;
 
-  let check;
+  status(
+   "Demande acceptée !"+
+   "\nNuméro : "+id+
+   "\nAttente des ordinateurs disponibles..."
+  );
+
+  // Suivi de la génération
+  let completed=false;
+
   for(let i=0;i<180;i++){
+
    await sleep(5000);
-   check=await request("/generate/check/"+submitted.id);
 
-   status("Votre demande : "+submitted.id+
-    "\nImages terminées : "+(check.finished||0)+
-    "\nEn attente : "+(check.waiting||0)+
-    "\nGénération en cours...");
+   const check=await checkWithRetry(id);
 
-   if((check.finished||0)>=count)break;
-   if(check.faulted)throw new Error("La génération a échoué.");
+   const finished=check.finished||0;
+   const waiting=check.waiting||0;
+   const processing=check.processing||0;
+
+   const position=check.queue_position;
+   const waitTime=check.wait_time;
+
+   status(
+    "Votre demande : "+id+
+    "\nImages terminées : "+finished+" / "+count+
+    "\nEn attente : "+waiting+
+    "\nEn cours de calcul : "+processing+
+    "\nPosition dans la file : "+
+    (position??"inconnue")+
+    "\nAttente estimée : "+
+    (waitTime!=null?
+     Math.ceil(waitTime/60)+" min":
+     "inconnue")+
+    "\nActualisation automatique..."
+   );
+
+   if(check.faulted){
+    throw new Error(
+     "AI Horde a signalé un échec de génération."
+    );
+   }
+
+   if(finished>=count || check.done){
+    completed=true;
+    break;
+   }
   }
 
-  const result=await request("/generate/status/"+submitted.id);
+  if(!completed){
+
+   throw new Error(
+    "Délai dépassé. Votre demande peut toujours être en attente. Vérifiez son état avant de la relancer."
+   );
+  }
+
+  // Récupérer les résultats
+  status("Récupération des images...");
+
+  const result=await request(
+   "/generate/status/"+encodeURIComponent(id)
+  );
+
   const generations=result.generations||[];
 
   if(!generations.length){
-   throw new Error("Aucune image reçue. Réessayez.");
+
+   throw new Error(
+    "Aucune image reçue. Vérifiez le statut de votre demande."
+   );
   }
 
-  $("results").innerHTML="";
+  displayImages(generations);
 
-  generations.forEach((generation,index)=>{
-   const card=document.createElement("div");
-   const img=document.createElement("img");
-   img.src=generation.img;
-   img.alt="Image générée "+(index+1);
-
-   const link=document.createElement("a");
-   link.href=generation.img;
-   link.download="mon-studio-image-"+(index+1);
-   link.target="_blank";
-   link.textContent="Télécharger l'image "+(index+1);
-
-   card.append(img,link);
-   $("results").append(card);
-  });
-
-  status("Terminé ! "+generations.length+" image(s) reçue(s).");
+  status(
+   "Terminé ! "+
+   generations.length+
+   " image(s) reçue(s)."
+  );
 
  }catch(error){
-  status("Erreur : "+error.message+
-   "\nVérifiez votre connexion et réessayez.");
+
+  status(
+   "Erreur : "+error.message+
+   "\nVérifiez votre connexion et réessayez."
+  );
+
  }finally{
+
   button.disabled=false;
  }
+
 });
+
 </script>
 </body>
-  </html>
-  
+                           </html>
+                                               
