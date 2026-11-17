@@ -92,12 +92,14 @@ button:disabled{opacity:.5}
 #results img{
  width:100%;
  border-radius:12px;
+ display:block;
 }
 
 #results a{
  display:block;
  color:#c4b5fd;
  margin:10px 0;
+ overflow-wrap:anywhere;
 }
 
 .warning{
@@ -114,6 +116,7 @@ button:disabled{opacity:.5}
 <header>
 <h1>✦ MON STUDIO IMAGE</h1>
 <p>Votre atelier personnel de création d'images IA</p>
+<p class="small">Création d'images avec AI Horde</p>
 </header>
 
 <section class="panel">
@@ -125,16 +128,16 @@ Décrivez votre idée et choisissez votre style.
 </p>
 
 <p class="warning">
-Votre clé API n'est pas enregistrée.
+Votre clé API reste dans votre navigateur.
 Ne la partagez jamais.
 </p>
 
-<label>Clé API AI Horde (facultatif)</label>
+<label>Clé API AI Horde</label>
 <input
  id="key"
  type="password"
  autocomplete="off"
- placeholder="Votre clé API"
+ placeholder="Clé API facultative"
 >
 
 <label>Description de l'image</label>
@@ -163,7 +166,7 @@ Ne la partagez jamais.
 <label>Modèle</label>
 
 <select id="model">
-<option>AlbedoBase XL (SDXL)</option>
+<option value="AlbedoBase XL (SDXL)">AlbedoBase XL (SDXL)</option>
 </select>
 
 <label>Résolution</label>
@@ -186,7 +189,9 @@ Ne la partagez jamais.
 ✦ GÉNÉRER MES IMAGES
 </button>
 
-<div id="status" role="status" aria-live="polite"></div>
+<div id="status" role="status" aria-live="polite">
+Prêt à créer votre image.
+</div>
 
 </section>
 
@@ -196,7 +201,7 @@ Ne la partagez jamais.
 </section>
 
 <p class="small" style="text-align:center">
-Mon Studio Image · AI Horde
+Mon Studio Image · AI Horde · Version améliorée
 </p>
 
 </main>
@@ -205,44 +210,65 @@ Mon Studio Image · AI Horde
 "use strict";
 
 const API="https://aihorde.net/api/v2";
+
 const $=id=>document.getElementById(id);
+
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+let currentRequestId=null;
 
 function status(message){
  $("status").textContent=message;
 }
 
+function apiKey(){
+ return $("key").value.trim() || "0000000000";
+}
+
+// Requête API
 async function request(path,options={}){
+
  const headers={
-  "Content-Type":"application/json",
-  "Client-Agent":"mon-studio-image:1.0"
+  "Client-Agent":"mon-studio-image:1.0",
+  "apikey":apiKey(),
+  ...options.headers
  };
 
- const key=$("key").value.trim();
-
- if(key){
-  headers.apikey=key;
+ if(options.method==="POST"){
+  headers["Content-Type"]="application/json";
  }
 
- const response=await fetch(API+path,{
-  ...options,
-  headers:{...headers,...options.headers}
- });
+ let response;
+
+ try{
+
+  response=await fetch(API+path,{
+   ...options,
+   headers
+  });
+
+ }catch(error){
+
+  throw new Error(
+   "Connexion impossible à AI Horde. Vérifiez Internet ou les restrictions CORS du navigateur."
+  );
+ }
 
  const data=await response.json().catch(()=>({}));
 
  if(!response.ok){
+
   throw new Error(
    data.message ||
    data.error ||
-   "Erreur API "+response.status
+   "Erreur API : "+response.status
   );
  }
 
  return data;
 }
 
-// Vérification avec nouvelles tentatives
+// Vérifier la demande avec trois tentatives
 async function checkWithRetry(id){
 
  let lastError=null;
@@ -250,6 +276,7 @@ async function checkWithRetry(id){
  for(let attempt=0;attempt<3;attempt++){
 
   try{
+
    return await request(
     "/generate/check/"+encodeURIComponent(id)
    );
@@ -259,191 +286,235 @@ async function checkWithRetry(id){
    lastError=error;
 
    if(attempt<2){
-    await sleep(2000);
+    await sleep(3000);
    }
   }
  }
 
- throw lastError || new Error("Connexion impossible.");
+ throw lastError || new Error("Vérification impossible.");
 }
 
-// Affichage des images
+// Afficher les images
 function displayImages(generations){
 
  $("results").innerHTML="";
+
+ let displayed=0;
 
  generations.forEach((generation,index)=>{
 
   if(!generation.img)return;
 
+  displayed++;
+
   const card=document.createElement("div");
 
   const img=document.createElement("img");
+
   img.src=generation.img;
   img.alt="Image générée "+(index+1);
   img.loading="lazy";
 
   const link=document.createElement("a");
+
   link.href=generation.img;
   link.target="_blank";
-  link.rel="noopener";
-  link.download="mon-studio-image-"+(index+1);
+  link.rel="noopener noreferrer";
   link.textContent="Ouvrir / télécharger l'image "+(index+1);
 
   card.append(img,link);
 
   $("results").append(card);
  });
+
+ return displayed;
 }
 
-// Génération
-$("generate").addEventListener("click",async()=>{
+// Envoyer une demande
+async function submitGeneration(){
 
  const prompt=$("prompt").value.trim();
 
  if(!prompt){
-  status("Veuillez écrire une description.");
-  return;
+  throw new Error("Veuillez écrire une description.");
  }
+
+ const style=$("style").value;
+ const negative=$("negative").value.trim();
+
+ const fullPrompt=
+  prompt+
+  (style?", "+style:"")+
+  (negative?"###"+negative:"");
+
+ const dimension=Number($("size").value);
+ const count=Number($("count").value);
+
+ status("Envoi de votre demande à AI Horde...");
+
+ const submitted=await request("/generate/async",{
+
+  method:"POST",
+
+  body:JSON.stringify({
+
+   prompt:fullPrompt,
+
+   params:{
+    width:dimension,
+    height:dimension,
+    steps:20,
+    cfg_scale:7,
+    sampler_name:"k_euler_a",
+    n:count
+   },
+
+   models:[$("model").value],
+
+   nsfw:false,
+   censor_nsfw:true,
+   shared:false
+
+  })
+
+ });
+
+ if(!submitted.id){
+
+  throw new Error(
+   submitted.message ||
+   "AI Horde n'a pas accepté la demande."
+  );
+ }
+
+ return submitted.id;
+}
+
+// Suivre la génération
+async function waitForGeneration(id,count){
+
+ const maximumChecks=180;
+
+ for(let i=0;i<maximumChecks;i++){
+
+  await sleep(5000);
+
+  const check=await checkWithRetry(id);
+
+  const finished=check.finished||0;
+  const waiting=check.waiting||0;
+  const processing=check.processing||0;
+
+  const position=check.queue_position;
+  const waitTime=check.wait_time;
+
+  status(
+   "Demande : "+id+
+   "\nImages terminées : "+finished+" / "+count+
+   "\nEn attente : "+waiting+
+   "\nEn calcul : "+processing+
+   "\nPosition dans la file : "+
+   (position??"inconnue")+
+   "\nTemps estimé : "+
+   (waitTime!=null?
+    Math.ceil(waitTime/60)+" min":
+    "inconnu")+
+   "\nVérification automatique..."
+  );
+
+  if(check.faulted && finished===0){
+
+   throw new Error(
+    "La génération a échoué sur AI Horde."
+   );
+  }
+
+  if(check.done || finished>=count){
+
+   return true;
+  }
+ }
+
+ return false;
+}
+
+// Récupérer les images
+async function getImages(id){
+
+ status("Génération terminée. Récupération des images...");
+
+ const result=await request(
+  "/generate/status/"+encodeURIComponent(id)
+ );
+
+ return result.generations||[];
+}
+
+// Bouton principal
+$("generate").addEventListener("click",async()=>{
 
  const button=$("generate");
 
  button.disabled=true;
- $("results").textContent="En attente de votre image...";
 
- status("Connexion à AI Horde...");
+ $("results").textContent="Préparation de votre création...";
+
+ currentRequestId=null;
 
  try{
 
-  const style=$("style").value;
-  const negative=$("negative").value.trim();
-
-  const fullPrompt=
-   prompt+
-   (style?", "+style:"")+
-   (negative?"###"+negative:"");
-
-  const dimension=Number($("size").value);
   const count=Number($("count").value);
 
-  // Envoyer la demande
-  const submitted=await request("/generate/async",{
-   method:"POST",
+  // 1. Envoyer la demande
+  const id=await submitGeneration();
 
-   body:JSON.stringify({
-
-    prompt:fullPrompt,
-
-    params:{
-     width:dimension,
-     height:dimension,
-     steps:20,
-     cfg_scale:7,
-     sampler_name:"k_euler_a",
-     n:count
-    },
-
-    models:[$("model").value],
-
-    nsfw:false,
-    censor_nsfw:true,
-    shared:false
-
-   })
-  });
-
-  if(!submitted.id){
-   throw new Error(
-    submitted.message ||
-    "Demande non acceptée par AI Horde."
-   );
-  }
-
-  const id=submitted.id;
+  currentRequestId=id;
 
   status(
    "Demande acceptée !"+
-   "\nNuméro : "+id+
-   "\nAttente des ordinateurs disponibles..."
+   "\nIdentifiant : "+id+
+   "\nRecherche d'un ordinateur disponible..."
   );
 
-  // Suivi de la génération
-  let completed=false;
-
-  for(let i=0;i<180;i++){
-
-   await sleep(5000);
-
-   const check=await checkWithRetry(id);
-
-   const finished=check.finished||0;
-   const waiting=check.waiting||0;
-   const processing=check.processing||0;
-
-   const position=check.queue_position;
-   const waitTime=check.wait_time;
-
-   status(
-    "Votre demande : "+id+
-    "\nImages terminées : "+finished+" / "+count+
-    "\nEn attente : "+waiting+
-    "\nEn cours de calcul : "+processing+
-    "\nPosition dans la file : "+
-    (position??"inconnue")+
-    "\nAttente estimée : "+
-    (waitTime!=null?
-     Math.ceil(waitTime/60)+" min":
-     "inconnue")+
-    "\nActualisation automatique..."
-   );
-
-   if(check.faulted){
-    throw new Error(
-     "AI Horde a signalé un échec de génération."
-    );
-   }
-
-   if(finished>=count || check.done){
-    completed=true;
-    break;
-   }
-  }
+  // 2. Attendre le résultat
+  const completed=await waitForGeneration(id,count);
 
   if(!completed){
 
-   throw new Error(
-    "Délai dépassé. Votre demande peut toujours être en attente. Vérifiez son état avant de la relancer."
+   status(
+    "Le délai d'attente du studio est dépassé."+
+    "\nVotre demande peut toujours être en cours."+
+    "\nIdentifiant à conserver : "+id
    );
+
+   return;
   }
 
-  // Récupérer les résultats
-  status("Récupération des images...");
+  // 3. Récupérer les images
+  const generations=await getImages(id);
 
-  const result=await request(
-   "/generate/status/"+encodeURIComponent(id)
-  );
+  const total=displayImages(generations);
 
-  const generations=result.generations||[];
-
-  if(!generations.length){
+  if(total===0){
 
    throw new Error(
-    "Aucune image reçue. Vérifiez le statut de votre demande."
+    "La demande est terminée mais aucune image n'a été reçue."
    );
   }
-
-  displayImages(generations);
 
   status(
-   "Terminé ! "+
-   generations.length+
-   " image(s) reçue(s)."
+   "Succès ! "+total+
+   " image(s) reçue(s)."+
+   "\nIdentifiant : "+id
   );
 
  }catch(error){
 
   status(
    "Erreur : "+error.message+
+   (currentRequestId?
+    "\nIdentifiant de demande : "+currentRequestId:
+    "")+
    "\nVérifiez votre connexion et réessayez."
   );
 
@@ -455,6 +526,7 @@ $("generate").addEventListener("click",async()=>{
 });
 
 </script>
+
 </body>
-                           </html>
-                                               
+ </html>
+ 
