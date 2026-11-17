@@ -1,1 +1,215 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mon Studio Image</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#f4f6ff;font-family:Arial,sans-serif}
+main{max-width:850px;margin:auto;padding:22px 14px}
+header{text-align:center;padding:20px}
+h1{color:#b9a2ff}
+.panel{background:#18213a;padding:20px;border-radius:16px;margin:16px 0}
+label{display:block;margin:15px 0 7px}
+input,textarea,select{width:100%;padding:12px;border-radius:9px;border:1px solid #465274;background:#0d1426;color:white;font-size:15px}
+textarea{min-height:130px}
+button{width:100%;padding:14px;margin-top:18px;border:0;border-radius:10px;background:linear-gradient(90deg,#a78bfa,#6ee7d8);font-weight:bold;font-size:16px;color:#11172a}
+button:disabled{opacity:.5}
+.small{font-size:12px;color:#b8c2d9;line-height:1.5}
+#status{white-space:pre-wrap;color:#6ee7d8;margin-top:15px;line-height:1.5}
+#results{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+#results img{width:100%;border-radius:12px}
+#results a{display:block;color:#c4b5fd;margin:10px 0}
+.warning{color:#ffe3a1;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>✦ MON STUDIO IMAGE</h1>
+<p>Votre atelier personnel de création d'images IA</p>
+</header>
+
+<section class="panel">
+<h2>Créer une image</h2>
+<p class="small">Décrivez votre idée et choisissez votre style.</p>
+
+<p class="warning">Votre clé API n'est pas enregistrée. Ne la partagez jamais.</p>
+<label>Clé API AI Horde (facultatif)</label>
+<input id="key" type="password" placeholder="Votre clé API">
+
+<label>Description de l'image</label>
+<textarea id="prompt">Un magnifique paysage fantastique japonais au coucher du soleil, un temple traditionnel au bord d’un lac cristallin, des montagnes majestueuses, des cerisiers en fleurs, un pont rouge, des lanternes illuminées, reflets sur l’eau, atmosphère magique, illustration anime japonaise détaillée, lumière cinématographique, sans texte, sans logo.</textarea>
+
+<label>Éléments à éviter</label>
+<input id="negative" placeholder="Flou, texte, filigrane, déformations">
+
+<label>Style</label>
+<select id="style">
+<option value="">Aucun ajout</option>
+<option value="anime japonais, illustration anime">Anime</option>
+<option value="photorealistic photography">Photo réaliste</option>
+<option value="digital fantasy art">Fantasy</option>
+<option value="cartoon illustration">Cartoon</option>
+<option value="watercolor painting">Aquarelle</option>
+<option value="oil painting">Peinture à l'huile</option>
+</select>
+
+<label>Modèle</label>
+<select id="model">
+<option>AlbedoBase XL (SDXL)</option>
+</select>
+
+<label>Résolution</label>
+<select id="size">
+<option value="1024">1024 × 1024</option>
+<option value="768">768 × 768</option>
+<option value="512">512 × 512</option>
+</select>
+
+<label>Nombre d'images</label>
+<select id="count">
+<option value="1">1 image</option>
+<option value="2" selected>2 images</option>
+<option value="3">3 images</option>
+</select>
+
+<button id="generate">✦ GÉNÉRER MES IMAGES</button>
+<div id="status" role="status"></div>
+</section>
+
+<section class="panel">
+<h2>Mes résultats</h2>
+<div id="results">Les images apparaîtront ici.</div>
+</section>
+<p class="small" style="text-align:center">Mon Studio Image · AI Horde</p>
+</main>
+
+<script>
+const API="https://aihorde.net/api/v2";
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+function status(message){
+ $("status").textContent=message;
+}
+
+async function request(path,options={}){
+ const headers={
+  "Content-Type":"application/json",
+  "Client-Agent":"mon-studio-image:1.0"
+ };
+ const key=$("key").value.trim();
+ if(key) headers.apikey=key;
+
+ const response=await fetch(API+path,{
+  ...options,
+  headers:{...headers,...options.headers}
+ });
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){
+  throw new Error(data.message||data.error||"Erreur API "+response.status);
+ }
+ return data;
+}
+
+$("generate").addEventListener("click",async()=>{
+ const prompt=$("prompt").value.trim();
+ if(!prompt){
+  status("Veuillez écrire une description.");
+  return;
+ }
+
+ const button=$("generate");
+ button.disabled=true;
+ $("results").innerHTML="";
+ status("Envoi de votre demande...");
+
+ try{
+  const style=$("style").value;
+  const negative=$("negative").value.trim();
+  const fullPrompt=prompt+(style?", "+style:"")+
+    (negative?"###"+negative:"");
+  const dimension=Number($("size").value);
+  const count=Number($("count").value);
+
+  const submitted=await request("/generate/async",{
+   method:"POST",
+   body:JSON.stringify({
+    prompt:fullPrompt,
+    params:{
+     width:dimension,
+     height:dimension,
+     steps:20,
+     cfg_scale:7,
+     sampler_name:"k_euler_a",
+     n:count
+    },
+    models:[$("model").value],
+    nsfw:false,
+    censor_nsfw:true,
+    shared:false
+   })
+  });
+
+  if(!submitted.id){
+   throw new Error(submitted.message||"Demande non acceptée.");
+  }
+
+  status("Demande acceptée !\nNuméro : "+submitted.id+
+   "\nAttente des ordinateurs disponibles...");
+
+  let check;
+  for(let i=0;i<180;i++){
+   await sleep(5000);
+   check=await request("/generate/check/"+submitted.id);
+
+   status("Votre demande : "+submitted.id+
+    "\nImages terminées : "+(check.finished||0)+
+    "\nEn attente : "+(check.waiting||0)+
+    "\nGénération en cours...");
+
+   if((check.finished||0)>=count)break;
+   if(check.faulted)throw new Error("La génération a échoué.");
+  }
+
+  const result=await request("/generate/status/"+submitted.id);
+  const generations=result.generations||[];
+
+  if(!generations.length){
+   throw new Error("Aucune image reçue. Réessayez.");
+  }
+
+  $("results").innerHTML="";
+
+  generations.forEach((generation,index)=>{
+   const card=document.createElement("div");
+   const img=document.createElement("img");
+   img.src=generation.img;
+   img.alt="Image générée "+(index+1);
+
+   const link=document.createElement("a");
+   link.href=generation.img;
+   link.download="mon-studio-image-"+(index+1);
+   link.target="_blank";
+   link.textContent="Télécharger l'image "+(index+1);
+
+   card.append(img,link);
+   $("results").append(card);
+  });
+
+  status("Terminé ! "+generations.length+" image(s) reçue(s).");
+
+ }catch(error){
+  status("Erreur : "+error.message+
+   "\nVérifiez votre connexion et réessayez.");
+ }finally{
+  button.disabled=false;
+ }
+});
+</script>
+</body>
+  </html>
+  
